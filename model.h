@@ -19,4 +19,18 @@ public:
         }
         return result;
     }
+
+    std::vector<T> backward(const std::vector<T>& output_gradient) {
+        std::vector<T> grad = output_gradient;
+        for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+            grad = (*it)->backward(grad);
+        }
+        return grad;
+    }
+
+    void update_weights(T learning_rate) {
+        for (auto& layer : m_layers) {
+            layer->update_weights(learning_rate);
+        }
+    }
 };

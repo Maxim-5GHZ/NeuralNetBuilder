@@ -15,6 +15,7 @@ set(HEADERS
     lay.h
     model.h
     activations.h
+    trainer.h
 )
 
 
