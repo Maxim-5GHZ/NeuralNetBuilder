@@ -5,6 +5,9 @@
 #include "model.h"
 #include "dense.h"
 #include "trainer.h"
+#include"maxpull.h"
+#include"flutten.h"
+#include"conv2d.h"
 
 using namespace std;
 using T = float;
@@ -38,8 +41,8 @@ vector<T> mse_loss_deriv(const vector<T>& pred, const vector<T>& target) {
 int main() {
 
     Model<T> model;
-    model.add(make_unique<Dense<T>>(2, Activations<T>::sigmoid, Activations<T>::sigmoid_deriv));       
-    model.add(make_unique<Dense<T>>(1, Activations<T>::sigmoid, Activations<T>::sigmoid_deriv));
+    model.add(make_unique<Dense<T>>(2, Activations<T>::relu, Activations<T>::relu_deriv));       
+    model.add(make_unique<Dense<T>>(1, Activations<T>::relu, Activations<T>::relu_deriv));
 
     BackwardTrainer<T> trainer(model, 0.001);
 
@@ -47,7 +50,6 @@ int main() {
     const T target_mse = 0.00001;
     const int max_epochs = 100000; 
 
-    cout << "Training XOR network..." << endl;
     T epoch_loss = 1;
     for (int epoch = 0; epoch_loss > 0.000005; ++epoch) {
         
