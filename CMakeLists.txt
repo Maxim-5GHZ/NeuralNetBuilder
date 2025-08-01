@@ -7,9 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCES
     main.cpp
-    model.cpp
-    lay.cpp
-    dense.cpp
 )
 
 
@@ -17,6 +14,7 @@ set(HEADERS
     dense.h
     lay.h
     model.h
+    activations.h
 )
 
 
