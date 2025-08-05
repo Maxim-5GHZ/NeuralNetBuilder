@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <sstream>
 
 template<typename T>
 class Conv2D : public Lay<T> {
@@ -81,12 +82,46 @@ public:
         initialize_weights();
     }
 
+    Conv2D() = default; // Для загрузки
+
+    std::string getType() const override { return "Conv2D"; }
+
+    void save(std::ostream& out) const override {
+        out << m_input_height << " " << m_input_width << " "
+            << m_input_channels << " " << m_kernel_size << " "
+            << m_output_channels << " " << m_stride << " " << m_padding << "\n";
+            
+        for (const auto& w : m_weights) out << w << " ";
+        out << "\n";
+        
+        for (const auto& b : m_biases) out << b << " ";
+        out << "\n";
+    }
+
+    void load(std::istream& in) override {
+        in >> m_input_height >> m_input_width
+           >> m_input_channels >> m_kernel_size
+           >> m_output_channels >> m_stride >> m_padding;
+        
+        calculate_output_dimensions();
+        
+        size_t weights_size = m_output_channels * m_input_channels * 
+                              m_kernel_size * m_kernel_size;
+        m_weights.resize(weights_size);
+        for (size_t i = 0; i < weights_size; ++i) in >> m_weights[i];
+        
+        m_biases.resize(m_output_channels);
+        for (size_t i = 0; i < m_output_channels; ++i) in >> m_biases[i];
+        
+        m_dweights.resize(weights_size, 0);
+        m_dbiases.resize(m_output_channels, 0);
+    }
+
     std::vector<T> forward(const std::vector<T>& input) override {
         if (input.size() != m_input_height * m_input_width * m_input_channels) {
             throw std::runtime_error("Conv2D: input size mismatch");
         }
         
-    
         apply_padding(input, m_padded_input);
         
         size_t padded_height = m_input_height + 2 * m_padding;
@@ -135,7 +170,6 @@ public:
         size_t padded_width = m_input_width + 2 * m_padding;
         std::vector<T> padded_input_grad(m_input_channels * padded_height * padded_width, 0);
         
-     
         std::fill(m_dweights.begin(), m_dweights.end(), 0);
         std::fill(m_dbiases.begin(), m_dbiases.end(), 0);
         
@@ -147,7 +181,6 @@ public:
                                    h * m_output_width + w;
                     T grad = output_gradient[out_idx];
                     
-            
                     m_dbiases[k] += grad;
                     
                     for (size_t c = 0; c < m_input_channels; ++c) {
@@ -162,10 +195,7 @@ public:
                                                   c * m_kernel_size * m_kernel_size +
                                                   kh * m_kernel_size + kw;
                                 
-                                
                                 m_dweights[weight_idx] += m_padded_input[input_idx] * grad;
-                                
-        
                                 padded_input_grad[input_idx] += m_weights[weight_idx] * grad;
                             }
                         }
@@ -174,7 +204,6 @@ public:
             }
         }
         
-       
         std::vector<T> input_grad(m_input_channels * m_input_height * m_input_width, 0);
         for (size_t c = 0; c < m_input_channels; ++c) {
             for (size_t h = 0; h < m_input_height; ++h) {
@@ -193,11 +222,9 @@ public:
     }
 
     void update_weights(T learning_rate) override {
-       
         for (size_t i = 0; i < m_weights.size(); ++i) {
             m_weights[i] -= learning_rate * m_dweights[i];
         }
-        
         
         for (size_t i = 0; i < m_biases.size(); ++i) {
             m_biases[i] -= learning_rate * m_dbiases[i];

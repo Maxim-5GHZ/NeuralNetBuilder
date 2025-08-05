@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
+#include <map>
 
 #pragma once
 
@@ -20,6 +22,7 @@ class Dense : public Lay<T> {
     std::vector<T> m_last_preactivation;
     std::vector<T> m_dweights;
     std::vector<T> m_dbiases;
+    std::string m_activation_name = "linear";
 
     void initializeWeights() {
         m_weights.resize(m_inputSize * m_outputSize);
@@ -33,6 +36,26 @@ class Dense : public Lay<T> {
         }
     }
 
+    void set_activation(const std::string& name) {
+        m_activation_name = name;
+        if (name == "sigmoid") {
+            m_activation = Activations<T>::sigmoid;
+            m_activation_deriv = Activations<T>::sigmoid_deriv;
+        } else if (name == "relu") {
+            m_activation = Activations<T>::relu;
+            m_activation_deriv = Activations<T>::relu_deriv;
+        } else if (name == "leakyRelu") {
+            m_activation = Activations<T>::leakyRelu;
+            m_activation_deriv = Activations<T>::leakyRelu_deriv;
+        } else if (name == "tanh") {
+            m_activation = Activations<T>::tanh;
+            m_activation_deriv = Activations<T>::tanh_deriv;
+        } else {
+            m_activation = [](T x) { return x; };
+            m_activation_deriv = [](T) { return 1; };
+        }
+    }
+
 public:
     Dense(size_t outputSize, 
           std::function<T(T)> activation = [](T x) { return x; },
@@ -40,6 +63,34 @@ public:
         : m_outputSize(outputSize), 
           m_activation(activation),
           m_activation_deriv(activation_deriv) {}
+
+    Dense() = default; // Для загрузки
+
+    std::string getType() const override { return "Dense"; }
+
+    void save(std::ostream& out) const override {
+        out << m_inputSize << " " << m_outputSize << "\n";
+        out << m_activation_name << "\n";
+        for (const auto& w : m_weights) out << w << " ";
+        out << "\n";
+        for (const auto& b : m_biases) out << b << " ";
+        out << "\n";
+    }
+
+    void load(std::istream& in) override {
+        in >> m_inputSize >> m_outputSize;
+        in >> m_activation_name;
+        set_activation(m_activation_name);
+        
+        m_weights.resize(m_inputSize * m_outputSize);
+        for (size_t i = 0; i < m_weights.size(); ++i) in >> m_weights[i];
+        
+        m_biases.resize(m_outputSize);
+        for (size_t i = 0; i < m_biases.size(); ++i) in >> m_biases[i];
+        
+        m_dweights.resize(m_weights.size(), 0);
+        m_dbiases.resize(m_biases.size(), 0);
+    }
 
     std::vector<T> forward(const std::vector<T>& input) override {
         if (m_weights.empty()) {
@@ -68,12 +119,10 @@ public:
         std::vector<T> input_gradient(m_inputSize, 0);
         std::vector<T> preact_gradient(m_outputSize);
 
-       
         for (size_t j = 0; j < m_outputSize; ++j) {
             preact_gradient[j] = output_gradient[j] * m_activation_deriv(m_last_preactivation[j]);
         }
 
-     
         for (size_t j = 0; j < m_outputSize; ++j) {
             for (size_t i = 0; i < m_inputSize; ++i) {
                 size_t index = j * m_inputSize + i;

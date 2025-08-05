@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdexcept>
 #include <limits>
+#include <iostream>
 
 template<typename T>
 class MaxPool : public Lay<T> {
@@ -23,6 +24,25 @@ public:
           m_output_width(input_width / pool_size) 
     {
         if (input_height % pool_size != 0 || input_width % pool_size != 0) {
+            throw std::runtime_error("Input dimensions must be divisible by pool_size");
+        }
+    }
+
+    MaxPool() = default; // Для загрузки
+
+    std::string getType() const override { return "MaxPool"; }
+
+    void save(std::ostream& out) const override {
+        out << m_input_height << " " << m_input_width << " "
+            << m_channels << " " << m_pool_size << "\n";
+    }
+
+    void load(std::istream& in) override {
+        in >> m_input_height >> m_input_width >> m_channels >> m_pool_size;
+        m_output_height = m_input_height / m_pool_size;
+        m_output_width = m_input_width / m_pool_size;
+        
+        if (m_input_height % m_pool_size != 0 || m_input_width % m_pool_size != 0) {
             throw std::runtime_error("Input dimensions must be divisible by pool_size");
         }
     }
@@ -96,6 +116,5 @@ public:
         return input_gradient;
     }
 
-    void update_weights(T learning_rate) override {
-    }
+    void update_weights(T learning_rate) override {}
 };
