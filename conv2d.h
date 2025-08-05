@@ -82,7 +82,7 @@ public:
         initialize_weights();
     }
 
-    Conv2D() = default; // Для загрузки
+    Conv2D() = default;
 
     std::string getType() const override { return "Conv2D"; }
 
@@ -103,15 +103,27 @@ public:
            >> m_input_channels >> m_kernel_size
            >> m_output_channels >> m_stride >> m_padding;
         
+        if (in.fail()) {
+            throw std::runtime_error("Conv2D: failed to read parameters");
+        }
+        
         calculate_output_dimensions();
         
         size_t weights_size = m_output_channels * m_input_channels * 
                               m_kernel_size * m_kernel_size;
         m_weights.resize(weights_size);
-        for (size_t i = 0; i < weights_size; ++i) in >> m_weights[i];
+        for (size_t i = 0; i < weights_size; ++i) {
+            if (!(in >> m_weights[i])) {
+                throw std::runtime_error("Conv2D: weight data truncated");
+            }
+        }
         
         m_biases.resize(m_output_channels);
-        for (size_t i = 0; i < m_output_channels; ++i) in >> m_biases[i];
+        for (size_t i = 0; i < m_output_channels; ++i) {
+            if (!(in >> m_biases[i])) {
+                throw std::runtime_error("Conv2D: bias data truncated");
+            }
+        }
         
         m_dweights.resize(weights_size, 0);
         m_dbiases.resize(m_output_channels, 0);
@@ -119,7 +131,11 @@ public:
 
     std::vector<T> forward(const std::vector<T>& input) override {
         if (input.size() != m_input_height * m_input_width * m_input_channels) {
-            throw std::runtime_error("Conv2D: input size mismatch");
+            std::ostringstream oss;
+            oss << "Conv2D: input size mismatch. Expected: " 
+                << m_input_height * m_input_width * m_input_channels
+                << ", Got: " << input.size();
+            throw std::runtime_error(oss.str());
         }
         
         apply_padding(input, m_padded_input);
@@ -163,7 +179,11 @@ public:
 
     std::vector<T> backward(const std::vector<T>& output_gradient) override {
         if (output_gradient.size() != m_output_height * m_output_width * m_output_channels) {
-            throw std::runtime_error("Conv2D: output gradient size mismatch");
+            std::ostringstream oss;
+            oss << "Conv2D: output gradient size mismatch. Expected: " 
+                << m_output_height * m_output_width * m_output_channels
+                << ", Got: " << output_gradient.size();
+            throw std::runtime_error(oss.str());
         }
         
         size_t padded_height = m_input_height + 2 * m_padding;

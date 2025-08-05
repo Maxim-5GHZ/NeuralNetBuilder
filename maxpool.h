@@ -28,7 +28,7 @@ public:
         }
     }
 
-    MaxPool() = default; // Для загрузки
+    MaxPool() = default;
 
     std::string getType() const override { return "MaxPool"; }
 
@@ -39,8 +39,13 @@ public:
 
     void load(std::istream& in) override {
         in >> m_input_height >> m_input_width >> m_channels >> m_pool_size;
+        if (in.fail()) {
+            throw std::runtime_error("MaxPool: failed to read parameters");
+        }
+        
         m_output_height = m_input_height / m_pool_size;
         m_output_width = m_input_width / m_pool_size;
+        m_max_indices.clear();  
         
         if (m_input_height % m_pool_size != 0 || m_input_width % m_pool_size != 0) {
             throw std::runtime_error("Input dimensions must be divisible by pool_size");
@@ -49,7 +54,11 @@ public:
 
     std::vector<T> forward(const std::vector<T>& input) override {
         if (input.size() != m_input_height * m_input_width * m_channels) {
-            throw std::runtime_error("MaxPool: input size does not match expected volume");
+            std::ostringstream oss;
+            oss << "MaxPool: input size mismatch. Expected: " 
+                << m_input_height * m_input_width * m_channels
+                << ", Got: " << input.size();
+            throw std::runtime_error(oss.str());
         }
 
         size_t output_size = m_output_height * m_output_width * m_channels;
@@ -90,7 +99,11 @@ public:
 
     std::vector<T> backward(const std::vector<T>& output_gradient) override {
         if (output_gradient.size() != m_output_height * m_output_width * m_channels) {
-            throw std::runtime_error("MaxPool: output gradient size does not match");
+            std::ostringstream oss;
+            oss << "MaxPool: output gradient size mismatch. Expected: " 
+                << m_output_height * m_output_width * m_channels
+                << ", Got: " << output_gradient.size();
+            throw std::runtime_error(oss.str());
         }
 
         std::vector<T> input_gradient(m_input_height * m_input_width * m_channels, T(0));

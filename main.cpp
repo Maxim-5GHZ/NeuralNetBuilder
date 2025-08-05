@@ -5,9 +5,9 @@
 #include "model.h"
 #include "dense.h"
 #include "trainer.h"
-#include"maxpool.h"
-#include"flatten.h"
-#include"conv2d.h"
+#include "maxpool.h"
+#include "flatten.h"
+#include "conv2d.h"
 
 using namespace std;
 using T = float;
@@ -38,13 +38,15 @@ vector<T> mse_loss_deriv(const vector<T>& pred, const vector<T>& target) {
 
 int main() {
     Model<T> model;
-    model.add(make_unique<Dense<T>>(2, Activations<T>::sigmoid, Activations<T>::sigmoid_deriv));       
-    model.add(make_unique<Dense<T>>(1, Activations<T>::sigmoid, Activations<T>::sigmoid_deriv));
+    
+    auto layer1 = make_unique<Dense<T>>(8, "relu");
+    auto layer2 = make_unique<Dense<T>>(1, "sigmoid");
+    
+    model.add(move(layer1));
+    model.add(move(layer2));
 
     BackwardTrainer<T> trainer(model, 0.1);
-    
-    // Обучение модели
-    const T target_mse = 0.00001;
+    const T target_mse = 0.1;
     const int max_epochs = 100000; 
     T epoch_loss = 1;
     
@@ -67,16 +69,13 @@ int main() {
         }
     }
   
-    // Сохранение обученной модели
-    model.save("xor_model.txt");
+   
     cout << "Model saved to xor_model.txt\n";
     
-    // Загрузка модели
     Model<T> loaded_model;
     loaded_model.load("xor_model.txt");
     cout << "Model loaded from xor_model.txt\n";
     
-    // Тестирование загруженной модели
     cout << "\nTesting loaded XOR model:\n";
     cout << fixed;
     cout.precision(4);

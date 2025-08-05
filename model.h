@@ -1,14 +1,32 @@
+#pragma once
 #include <vector>
 #include <memory>
 #include "lay.h"
-#include"dense.h"
-#include"conv2d.h"
-#include"maxpool.h"
-#include"flatten.h"
+#include "dense.h"
+#include "conv2d.h"
+#include "maxpool.h"
+#include "flatten.h"
 #include <fstream>
 #include <string>
 #include <stdexcept>
-#pragma once
+#include <functional>
+#include <unordered_map>
+
+template<typename T>
+std::unique_ptr<Lay<T>> create_layer(const std::string& type) {
+    static const std::unordered_map<std::string, std::function<std::unique_ptr<Lay<T>>()>> creators = {
+        {"Dense", []() { return std::make_unique<Dense<T>>(); }},
+        {"Conv2D", []() { return std::make_unique<Conv2D<T>>(); }},
+        {"MaxPool", []() { return std::make_unique<MaxPool<T>>(); }},
+        {"Flatten", []() { return std::make_unique<Flatten<T>>(); }}
+    };
+
+    auto it = creators.find(type);
+    if (it == creators.end()) {
+        throw std::runtime_error("Unknown layer type: " + type);
+    }
+    return it->second();
+}
 
 template<typename T>
 class Model {
@@ -41,7 +59,6 @@ public:
         }
     }
 
-    // Сохранение модели в файл
     void save(const std::string& filename) const {
         std::ofstream out(filename);
         if (!out) throw std::runtime_error("Cannot open file for writing");
@@ -52,7 +69,6 @@ public:
         }
     }
 
-    // Загрузка модели из файла
     void load(const std::string& filename) {
         std::ifstream in(filename);
         if (!in) throw std::runtime_error("Cannot open file for reading");
@@ -61,21 +77,18 @@ public:
         std::string layer_type;
         
         while (in >> layer_type) {
-            std::unique_ptr<Lay<T>> layer;
+            auto layer = create_layer<T>(layer_type);
             
-            if (layer_type == "Dense") {
-                layer = std::make_unique<Dense<T>>();
-            } else if (layer_type == "Conv2D") {
-                layer = std::make_unique<Conv2D<T>>();
-            } else if (layer_type == "MaxPool") {
-                layer = std::make_unique<MaxPool<T>>();
-            } else if (layer_type == "Flatten") {
-                layer = std::make_unique<Flatten<T>>();
-            } else {
-                throw std::runtime_error("Unknown layer type: " + layer_type);
+            try {
+                layer->load(in);
+            } catch (const std::exception& e) {
+                throw std::runtime_error("Error loading layer '" + layer_type + "': " + e.what());
             }
             
-            layer->load(in);
+            if (in.fail()) {
+                throw std::runtime_error("File read error after layer: " + layer_type);
+            }
+            
             m_layers.push_back(std::move(layer));
         }
     }

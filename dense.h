@@ -1,3 +1,4 @@
+#pragma once
 #include "lay.h"
 #include "activations.h"
 #include <memory>
@@ -7,8 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
-
-#pragma once
+#include <cmath>
 
 template<typename T>
 class Dense : public Lay<T> {
@@ -36,6 +36,8 @@ class Dense : public Lay<T> {
         }
     }
 
+public:
+  
     void set_activation(const std::string& name) {
         m_activation_name = name;
         if (name == "sigmoid") {
@@ -56,15 +58,12 @@ class Dense : public Lay<T> {
         }
     }
 
-public:
-    Dense(size_t outputSize, 
-          std::function<T(T)> activation = [](T x) { return x; },
-          std::function<T(T)> activation_deriv = [](T) { return 1; })
-        : m_outputSize(outputSize), 
-          m_activation(activation),
-          m_activation_deriv(activation_deriv) {}
+    Dense(size_t outputSize, const std::string& activation_name = "linear")
+        : m_outputSize(outputSize) {
+        set_activation(activation_name);
+    }
 
-    Dense() = default; // Для загрузки
+    Dense() = default;
 
     std::string getType() const override { return "Dense"; }
 
@@ -80,7 +79,7 @@ public:
     void load(std::istream& in) override {
         in >> m_inputSize >> m_outputSize;
         in >> m_activation_name;
-        set_activation(m_activation_name);
+        set_activation(m_activation_name);  
         
         m_weights.resize(m_inputSize * m_outputSize);
         for (size_t i = 0; i < m_weights.size(); ++i) in >> m_weights[i];

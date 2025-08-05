@@ -1,14 +1,13 @@
+#pragma once
 #include "lay.h"
 #include <vector>
 #include <stdexcept>
 #include <iostream>
 
-#pragma once
-
 template<typename T>
 class Flatten : public Lay<T> {
 private:
-    size_t m_input_size;
+    size_t m_input_size = 0; 
 
 public:
     Flatten() = default;
@@ -16,12 +15,11 @@ public:
     std::string getType() const override { return "Flatten"; }
 
     void save(std::ostream& out) const override {
-        
+        out << m_input_size << "\n";  
     }
 
     void load(std::istream& in) override {
-      
-    }
+        in >> m_input_size; }
 
     std::vector<T> forward(const std::vector<T>& input) override {
         m_input_size = input.size();
