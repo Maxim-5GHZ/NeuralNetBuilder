@@ -1,10 +1,8 @@
 #pragma once
 #include "Layer.h"
-
 class ReLULayer : public Layer {
 private:
     Tensor last_input;
-
 public:
     Tensor forward(const Tensor& input) override {
         last_input = input;
@@ -16,7 +14,6 @@ public:
         }
         return output;
     }
-
     Tensor backward(const Tensor& output_gradient) override {
         Tensor input_gradient = output_gradient;
         for (size_t i = 0; i < last_input.data.size(); ++i) {
@@ -26,7 +23,6 @@ public:
         }
         return input_gradient;
     }
-
     std::unique_ptr<Layer> clone() const override {
         return std::make_unique<ReLULayer>(*this);
     }

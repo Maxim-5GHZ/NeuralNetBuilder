@@ -3,30 +3,23 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
-
 class MaxPooling2DLayer : public Layer {
 private:
     int pool_size;
     int stride;
     Tensor last_input;
-    std::vector<int> max_indices; // Для хранения индексов максимальных элементов
-
+    std::vector<int> max_indices; 
 public:
     MaxPooling2DLayer(int pool_size, int stride = -1) : pool_size(pool_size) {
         this->stride = (stride == -1) ? pool_size : stride;
     }
-
     Tensor forward(const Tensor& input) override {
         last_input = input;
-        // Ожидаемая форма входа: {N, C, H_in, W_in}
         int N = input.shape[0], C = input.shape[1], H_in = input.shape[2], W_in = input.shape[3];
-
         int H_out = (H_in - pool_size) / stride + 1;
         int W_out = (W_in - pool_size) / stride + 1;
-
         Tensor output({N, C, H_out, W_out});
         max_indices.resize(output.data.size());
-
         for (int n = 0; n < N; ++n) {
             for (int c = 0; c < C; ++c) {
                 for (int h = 0; h < H_out; ++h) {
@@ -53,20 +46,15 @@ public:
         }
         return output;
     }
-
     Tensor backward(const Tensor& output_gradient) override {
-        Tensor input_gradient(last_input.shape); // Инициализируется нулями
-        
+        Tensor input_gradient(last_input.shape); 
         int N = last_input.shape[0], C = last_input.shape[1];
         int H_out = (last_input.shape[2] - pool_size) / stride + 1;
         int W_out = (last_input.shape[3] - pool_size) / stride + 1;
-
         for (int i = 0; i < max_indices.size(); ++i) {
             int input_idx = max_indices[i];
-            // Градиент передается только тому нейрону, который был максимальным
             input_gradient.data[input_idx] += output_gradient.data[i];
         }
-        
         return input_gradient;
     }
 };

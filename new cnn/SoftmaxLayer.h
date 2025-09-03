@@ -4,32 +4,24 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
-
 class SoftmaxLayer : public Layer {
 private:
     Tensor last_output;
-
 public:
     Tensor forward(const Tensor& input) override {
-        assert(input.shape.size() == 2); // Ожидаем (batch_size, num_features)
+        assert(input.shape.size() == 2); 
         Tensor output({input.shape[0], input.shape[1]});
-        
-        // Обрабатываем каждый пример в батче
         for (int i = 0; i < input.shape[0]; ++i) {
-            // Вычитание максимума для численной стабильности
             float max_val = input.at(i, 0);
             for (int j = 1; j < input.shape[1]; ++j) {
                 if (input.at(i, j) > max_val) max_val = input.at(i, j);
             }
-
             float sum_exp = 0.0f;
             for (int j = 0; j < input.shape[1]; ++j) {
                 float val = exp(input.at(i, j) - max_val);
                 output.at(i, j) = val;
                 sum_exp += val;
             }
-
-            // Нормализация
             for (int j = 0; j < input.shape[1]; ++j) {
                 output.at(i, j) /= sum_exp;
             }
@@ -37,18 +29,14 @@ public:
         last_output = output;
         return output;
     }
-
     Tensor backward(const Tensor& output_gradient) override {
         assert(output_gradient.shape.size() == 2);
         Tensor input_gradient({output_gradient.shape[0], output_gradient.shape[1]});
-
         for (int n = 0; n < output_gradient.shape[0]; ++n) {
-            // Для каждого примера в батче вычисляем произведение Якобиана на вектор градиента
             float dot_product = 0.0f;
             for (int j = 0; j < output_gradient.shape[1]; ++j) {
                 dot_product += output_gradient.at(n, j) * last_output.at(n, j);
             }
-
             for (int i = 0; i < output_gradient.shape[1]; ++i) {
                 input_gradient.at(n, i) = last_output.at(n, i) * (output_gradient.at(n, i) - dot_product);
             }
